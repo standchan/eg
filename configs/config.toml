@@ -1,0 +1,8 @@
+
+[common]
+#mysql数据库配置
+db_conn="XW_INNER_DB_CONN"
+
+#日志级别DEBUG/INFO/WARN/ERROR
+log_level="INFO"
+
