@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/joho/godotenv v1.4.0
-	go.pfgit.cn/letsgo/xdev v0.0.0-20220212083625-4593dab3fd7f
+	go.pfgit.cn/letsgo/xdev v0.0.0-20220902015834-dc1321dc7863
 )
 
 require (
