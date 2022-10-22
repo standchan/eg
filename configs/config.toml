@@ -6,3 +6,4 @@ db_conn="XW_INNER_DB_CONN"
 #日志级别DEBUG/INFO/WARN/ERROR
 log_level="INFO"
 
+data_dir="XW_DATA_DIR"

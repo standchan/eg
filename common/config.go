@@ -7,6 +7,7 @@ type XConfig struct {
 	LogLevel string `key:"common.log_level" default:"INFO"`
 
 	//TODO:定义模块自己需要的配置，字段如何定义可查看xdev.ReadConfig说明
+	DataDir string `key:"common.data_dir" default:"/opt/eagle_data"`
 }
 
 var Config XConfig
