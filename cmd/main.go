@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"eagleserver/common"
+	"os"
 
 	_ "github.com/joho/godotenv/autoload"
 	"go.pfgit.cn/letsgo/xdev"
@@ -19,6 +19,5 @@ func main() {
 	Log.Info("==========================config init ok=============================")
 	Log.Infof("%+v", common.Config)
 	xdev.SetLogLevel(common.Config.LogLevel)
-
 	//TODO:
 }
