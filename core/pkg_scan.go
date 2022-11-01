@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,10 +17,12 @@ type pkgInfo struct {
 	pkgName string
 	version int
 	pkgUrl  string
-	mtime   int
+	mtime   time.Time
 	md5     string
 	pkgType string
 }
+
+var PkgsInfo []pkgInfo
 
 // 每60秒扫描一次包目录
 // 防止包仍然在往input传输的时候被移动到pkg目录，导致包不完整情况发生。
@@ -35,7 +38,8 @@ func PkgScanThread() {
 }
 
 func pkgScan() {
-	scanInputDir(common.Config.DataDir + "/input")
+	scanInputDir(common.Config.InputDir)
+	scanPkgsDir(common.Config.PkgsDir)
 }
 
 func scanInputDir(dirPath string) {
@@ -52,13 +56,13 @@ func scanInputDir(dirPath string) {
 		} else {
 			now := time.Now().Unix()
 			if now-fs.ModTime().Unix() > 10 {
-				processPkg(dirPath, d.Name())
+				processInputDir(dirPath, d.Name())
 			}
 		}
 	}
 }
 
-func processPkg(dirPath string, pkgName string) error {
+func processInputDir(dirPath string, pkgName string) error {
 	pkgPath := filepath.Join(dirPath, pkgName)
 	xdev.Log.Info("find file,filepath= ", pkgPath)
 
@@ -91,7 +95,7 @@ func processPkg(dirPath string, pkgName string) error {
 				}
 				var errNum int
 				for _, d := range dirEntry {
-					err := processPkg(subdirPath, d.Name())
+					err := processInputDir(subdirPath, d.Name())
 					if err != nil {
 						errNum++
 					}
@@ -103,7 +107,7 @@ func processPkg(dirPath string, pkgName string) error {
 			}
 		}
 	} else {
-		xdev.Log.Infof("move file %s to %s", pkgPath)
+		xdev.Log.Infof("move file %s to %s", pkgPath, common.Config.BackupDir)
 		err := os.Rename(pkgPath, common.Config.BackupDir)
 		if err != nil {
 			xdev.Log.Error(err)
@@ -113,8 +117,54 @@ func processPkg(dirPath string, pkgName string) error {
 	return nil
 }
 
-func scanPkgsDir() {
+func scanPkgsDir(dirPath string) {
+	dirEntry, err := os.ReadDir(dirPath)
+	if err != nil {
+		xdev.Log.Error(err)
+		return
+	}
+	processPkgsDir(dirEntry)
+}
 
+func processPkgsDir(dirEntry []os.DirEntry) {
+	var pkgsInfo []pkgInfo
+	for _, d := range dirEntry {
+		fs, err := d.Info()
+		if err != nil {
+			xdev.Log.Error(err)
+			continue
+		}
+		// fs.Name() eg: vendor-kafka-install-20220826.tar.gz
+		if strings.HasSuffix(fs.Name(), ".tar.gz") {
+			var tpkgInfo pkgInfo
+			nameFile := strings.FieldsFunc(fs.Name(), Split)
+			tpkgInfo.appName = nameFile[1]
+			tpkgInfo.pkgName = fs.Name()
+			versionInt, err := strconv.Atoi(nameFile[3])
+			if err != nil {
+				xdev.Log.Error(err)
+				continue
+			}
+			tpkgInfo.version = versionInt
+			tpkgInfo.md5 = CallMd5(fmt.Sprintf("%s/%s", common.Config.PkgsDir, fs.Name()))
+			tpkgInfo.pkgUrl = fmt.Sprintf("%s/%s", common.Config.NginxUrl, fs.Name())
+			tpkgInfo.mtime = fs.ModTime()
+			tpkgInfo.pkgType = getPkgType(fmt.Sprintf("%s/%s", common.Config.PkgsDir, fs.Name()))
+			pkgsInfo = append(pkgsInfo, tpkgInfo)
+		}
+	}
+}
+
+func Split(r rune) bool {
+	return r == '-' || r == '.'
+}
+
+func SplitString(s string) []string {
+	return strings.FieldsFunc(s, Split)
+}
+
+func CallMd5(filePath string) string {
+	return ""
 }
 
 func decompress(filePath string, destPath string) error {
@@ -125,6 +175,10 @@ func decompress(filePath string, destPath string) error {
 		return err
 	}
 	return nil
+}
+
+func getPkgType(filePath string) string {
+	return ""
 }
 
 func installDB() {
